@@ -1,6 +1,6 @@
 {
   "name": "card-sample-shared-toggle",
-  "description": "Carl&#39;s frist card",
+  "description": "Carl's frist card",
   "main": "card-sample-shared-toggle.html",
   "dependencies": {
     "polymer": "Polymer/polymer#^2.0.0",
@@ -13,14 +13,14 @@
     "web-component-tester": "Polymer/web-component-tester#^6.0.0",
     "webcomponentsjs": "webcomponents/webcomponentsjs#^1.0.0"
   },
-    "ignore": [
+  "resolutions": {
+    "polymer": "^2.0.0"
+  },
+      "ignore": [
       "**/.*",
       "node_modules",
       "bower_components",
       "test",
       "demo"
-    ],
-  "resolutions": {
-    "polymer": "^2.0.0"
-  }
+    ]
 }

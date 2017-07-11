@@ -1,36 +1,88 @@
 <link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../distributed-state-controller/distributed-state-controller.html">
 
-<dom-module id="card-sample-shared-toggle">
+<dom-module id="card-sample-shared-toggle-composer">
   <template>
-    <style>
-      :host {
-        display: block;
-      }
-    </style>
-    <h2>Hello [[prop1]]!</h2>
+    <div>
+      <paper-button on-click="onSend" raised>Send</paper-button> Tap to add a shared toggle button
+    </div>
   </template>
-
   <script>
-    /**
-     * `card-sample-shared-toggle`
-     * Carl frist card
-     *
-     * @customElement
-     * @polymer
-     * @demo demo/index.html
-     */
-    class CardSampleSharedToggle extends Polymer.Element {
-      static get is() { return 'card-sample-shared-toggle'; }
+    class CardSampleSharedToggleComposer extends Polymer.Element {
+      static get is() { return 'card-sample-shared-toggle-composer'; }
       static get properties() {
         return {
-          prop1: {
-            type: String,
-            value: 'card-sample-shared-toggle'
-          }
+          channel: Object
         };
       }
+      // For composing, we just send a card, initializing the checked state to false.
+      // The viewer will do all of the work.
+      onSend() {
+        this.channel.sendCard(this, { json: { checked: false } }, true, false);
+      }
     }
+    window.customElements.define(CardSampleSharedToggleComposer.is, CardSampleSharedToggleComposer);
+  </script>
+</dom-module>
 
-    window.customElements.define(CardSampleSharedToggle.is, CardSampleSharedToggle);
+<dom-module id="card-sample-shared-toggle-viewer">
+  <template>
+    <div>
+      <!--Notice that the data binding is square brackets -- i.e., one-way -- meaning that a change to data.checked
+      will result in the toggle button changing to match automatically.  When the user changes it, the onToggle
+      handler will take care of the necessary updates (using the state controller).-->
+      <paper-toggle-button on-change="onToggle" checked="[[data.checked]]">Tap to jump up and down</paper-toggle-button>
+    </div>
+  </template>
+  <script>
+   class CardSampleSharedToggleViewer extends Polymer.Element {
+      static get is() { return 'card-sample-shared-toggle-viewer'; }
+      static get properties() {
+        return {
+          data: Object,
+          channel: Object
+        };
+      }
+      constructor() {
+        super();
+        this.stateController = new DistributedStateController();
+      }
+      // connectedCallback is called by Polymer when the component is ready to start doing its work.
+      // At this point, the data property has been initialized by the client, and so this is when we
+      // can initialize the state in the state controller.
+      connectedCallback() {
+        super.connectedCallback();
+        this.stateController.initialize(this, this.data);
+      }
+      // When the user clicks on the toggle button, we tell the state controller what has happened.  It
+      // will send the necessary information to other cards and will update us (calling setProperty below)
+      // when there is any change -- local or remote
+      onToggle(event) {
+        this.stateController.updateProperty('checked', event.target.checked);
+      }
+
+      // If another card sends us something, we just pass it along to the state controller
+      handleCardToCardMessageReceived(participant, message) {
+        switch (message.json.type) {
+          case 'mutation':
+            this.stateController.handleInboundMutation(message.json.details, message);
+            break;
+          default:
+            break;
+        }
+      }
+      // When the state controller asks us to send a mutation, we just pass it along to the channel
+      sendMutation(mutation) {
+        return this.channel.sendCardToCardMessage(this, { json: { type: "mutation", details: mutation } }, true, false);
+      }
+      // When the state controller tells us that a property has changed, we update the data, and this will
+      // cause the toggle button to be updated because of its data binding.
+      setProperty(path, value) {
+        this.set('data.' + path, value);
+      }
+    }
+    window.customElements.define(CardSampleSharedToggleViewer.is, CardSampleSharedToggleViewer);
   </script>
 </dom-module>
